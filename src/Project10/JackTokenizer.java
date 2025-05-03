@@ -1,0 +1,221 @@
+package Project10;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+public class JackTokenizer {
+    private static final ArrayList<String> keywords;
+    private static final String symbols;
+    private static final String operations;
+    private final ArrayList<String> parsedTokens;
+    private int currentTokenIndex;
+
+    static {
+        keywords = new ArrayList<>();
+        keywords.add("class");
+        keywords.add("constructor");
+        keywords.add("function");
+        keywords.add("method");
+        keywords.add("field");
+        keywords.add("static");
+        keywords.add("var");
+        keywords.add("int");
+        keywords.add("char");
+        keywords.add("boolean");
+        keywords.add("void");
+        keywords.add("true");
+        keywords.add("false");
+        keywords.add("null");
+        keywords.add("this");
+        keywords.add("do");
+        keywords.add("if");
+        keywords.add("else");
+        keywords.add("while");
+        keywords.add("return");
+        keywords.add("let");
+        operations = "+-*/&|<>=";
+        symbols = "{}()[].,;+-*/&|<>=-~";
+    }
+
+    public JackTokenizer(File inFile) {
+        Scanner scanner;
+        try {
+            scanner = new Scanner(inFile);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+
+        String sanitizedJackCode = "";
+        while (scanner.hasNextLine()) {
+            String jackFileLine = scanner.nextLine();
+            jackFileLine = removeComments(jackFileLine).trim();
+
+            while (jackFileLine.isEmpty() && scanner.hasNextLine()) {
+                jackFileLine = scanner.nextLine();
+                jackFileLine = removeComments(jackFileLine).trim();
+            }
+            sanitizedJackCode = sanitizedJackCode.concat(jackFileLine);
+        }
+
+        parsedTokens = new ArrayList<>();
+        currentTokenIndex = -1;
+        while (!sanitizedJackCode.isEmpty()) {
+            while (sanitizedJackCode.charAt(0) == ' ') {
+                sanitizedJackCode = sanitizedJackCode.substring(1);
+            }
+
+            for (String keyword : keywords) {
+                if (sanitizedJackCode.startsWith(keyword)) {
+                    parsedTokens.add(keyword);
+                    sanitizedJackCode = sanitizedJackCode.substring(keyword.length());
+                }
+            }
+
+            if (symbols.contains(sanitizedJackCode.substring(0,1))) {
+                parsedTokens.add(sanitizedJackCode.substring(0,1));
+                sanitizedJackCode = sanitizedJackCode.substring(1);
+            } else if (Character.isDigit(sanitizedJackCode.charAt(0))) {
+                String integerString = "";
+                while (Character.isDigit(sanitizedJackCode.charAt(0))) {
+                    integerString = integerString.concat(sanitizedJackCode.substring(0,1));
+                    sanitizedJackCode = sanitizedJackCode.substring(1);
+                }
+                parsedTokens.add(integerString);
+            } else if (sanitizedJackCode.charAt(0) == '"') {
+                String stringString = "\"";
+                sanitizedJackCode = sanitizedJackCode.substring(1);
+                while (sanitizedJackCode.charAt(0) != '"') {
+                    stringString = stringString.concat(sanitizedJackCode.substring(0,1));
+                    sanitizedJackCode = sanitizedJackCode.substring(1);
+                }
+                stringString = stringString.concat("\"");
+                parsedTokens.add(stringString);
+                sanitizedJackCode = sanitizedJackCode.substring(1);
+            } else if (Character.isLetter(sanitizedJackCode.charAt(0)) || sanitizedJackCode.charAt(0) == '_') {
+                String identifier = sanitizedJackCode.substring(0,1);
+                sanitizedJackCode = sanitizedJackCode.substring(1);
+                while (Character.isLetter(sanitizedJackCode.charAt(0)) || sanitizedJackCode.charAt(0) == '_') {
+                    identifier = identifier.concat(sanitizedJackCode.substring(0,1));
+                    sanitizedJackCode = sanitizedJackCode.substring(1);
+                }
+                parsedTokens.add(identifier);
+            }
+        }
+    }
+
+    public boolean hasMoreTokens() {
+        return !parsedTokens.isEmpty() && currentTokenIndex < parsedTokens.size() - 1;
+    }
+
+    public void advance() {
+        if (!this.hasMoreTokens()) return;
+
+        currentTokenIndex++;
+        System.out.print(currentTokenIndex);
+        System.out.print(" from advance: ");
+        System.out.println(parsedTokens.get(currentTokenIndex));
+    }
+
+    public TokenType tokenType() {
+        String currentToken = parsedTokens.get(currentTokenIndex);
+
+        if (keywords.contains(currentToken)) {
+            return TokenType.KEYWORD;
+        } else if (symbols.contains(currentToken)) {
+            return TokenType.SYMBOL;
+        } else if (Character.isDigit(currentToken.charAt(0))) {
+            return TokenType.INT_CONST;
+        } else if (currentToken.charAt(0) == '"') {
+            return TokenType.STRING_CONST;
+        } else if (Character.isLetter(currentToken.charAt(0)) || currentToken.charAt(0) == '_') {
+            return TokenType.IDENTIFIER;
+        }
+
+        return null;
+    }
+
+    public TokenKeyword keyWord() {
+        if (this.tokenType() != TokenType.KEYWORD) return null;
+
+        String currentToken = parsedTokens.get(currentTokenIndex);
+        return switch (currentToken) {
+            case "class" -> TokenKeyword.CLASS;
+            case "constructor" -> TokenKeyword.CONSTRUCTOR;
+            case "function" -> TokenKeyword.FUNCTION;
+            case "method" -> TokenKeyword.METHOD;
+            case "field" -> TokenKeyword.FIELD;
+            case "static" -> TokenKeyword.STATIC;
+            case "var" -> TokenKeyword.VAR;
+            case "int" -> TokenKeyword.INT;
+            case "char" -> TokenKeyword.CHAR;
+            case "boolean" -> TokenKeyword.BOOLEAN;
+            case "void" -> TokenKeyword.VOID;
+            case "true" -> TokenKeyword.TRUE;
+            case "false" -> TokenKeyword.FALSE;
+            case "null" -> TokenKeyword.NULL;
+            case "this" -> TokenKeyword.THIS;
+            case "do" -> TokenKeyword.DO;
+            case "if" -> TokenKeyword.IF;
+            case "else" -> TokenKeyword.ELSE;
+            case "while" -> TokenKeyword.WHILE;
+            case "return" -> TokenKeyword.RETURN;
+            case "let" -> TokenKeyword.LET;
+            default -> null;
+        };
+    }
+
+    public Character symbol() {
+        if (this.tokenType() != TokenType.SYMBOL) return null;
+
+        return parsedTokens.get(currentTokenIndex).charAt(0);
+    }
+
+    public String identifier() {
+        if (this.tokenType() != TokenType.IDENTIFIER) return null;
+
+        return parsedTokens.get(currentTokenIndex);
+    }
+
+    public Integer intVal() {
+        if (this.tokenType() != TokenType.INT_CONST) return null;
+
+        return Integer.parseInt(parsedTokens.get(currentTokenIndex));
+    }
+
+    public String stringVal() {
+        if (this.tokenType() != TokenType.STRING_CONST) return null;
+
+        String currentToken = parsedTokens.get(currentTokenIndex);
+        return currentToken.substring(1, currentToken.length() - 1);
+    }
+
+    public boolean isOperation() {
+        if (this.tokenType() != TokenType.SYMBOL) return false;
+
+        String currentToken = parsedTokens.get(currentTokenIndex);
+        return operations.contains(currentToken);
+    }
+
+    public void decrementTokenIndex() {
+        currentTokenIndex -= 1;
+
+        System.out.print(currentTokenIndex);
+        System.out.print(" from decrement: ");
+        System.out.println(parsedTokens.get(currentTokenIndex));
+    }
+
+    private String removeComments(String line) {
+        int commentIndex;
+        if (line.startsWith(" *")) {
+            commentIndex = line.indexOf("*");
+        } else if (line.contains("/*")) {
+            commentIndex = line.indexOf("/*");
+        } else {
+            commentIndex = line.indexOf("//");
+        }
+
+        return commentIndex == -1 ? line : line.substring(0, commentIndex).trim();
+    }
+}
