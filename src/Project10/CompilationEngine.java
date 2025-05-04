@@ -1,553 +1,456 @@
 package Project10;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 public class CompilationEngine {
-    private FileWriter fileWriter;
-    private JackTokenizer jackTokenizer;
-    private boolean bFirstRoutine;
+    private PrintWriter printWriter;
+    private JackTokenizer tokenizer;
 
     public CompilationEngine(File inFile, File outFile) {
         try {
-            fileWriter = new FileWriter(outFile);
-            jackTokenizer = new JackTokenizer(inFile);
+            printWriter = new PrintWriter(outFile);
+            tokenizer = new JackTokenizer(inFile);
         } catch (IOException e) {
             e.printStackTrace(System.out);
         }
-        bFirstRoutine = true;
     }
 
     public void compileClass() {
-        jackTokenizer.advance();
+        tokenizer.advance();
 
-        try {
-            fileWriter.write("<class>\n");
-            fileWriter.write("<keyword> class </keyword>\n");
-            jackTokenizer.advance();
-            fileWriter.write("<identifier> " + jackTokenizer.identifier() + " </identifier>\n");
-            jackTokenizer.advance();
-            fileWriter.write("<symbol> { </symbol>\n");
-            compileClassVarDec();
-            compileSubroutine();
-            fileWriter.write("<symbol> } </symbol>\n");
-            fileWriter.write("</class>\n");
-            fileWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
+        if (tokenizer.tokenType() != TokenType.KEYWORD || tokenizer.keyWord() != TokenKeyword.CLASS) {
+            return;
         }
+
+        printWriter.println("<class>");
+        printWriter.println("<keyword> class </keyword>");
+
+        tokenizer.advance();
+        String firstIdentifier = tokenizer.identifier();
+
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '.') {
+            tokenizer.advance();
+            firstIdentifier = firstIdentifier.concat("." + tokenizer.identifier());
+        } else {
+            tokenizer.decrementTokenIndex();
+        }
+        printWriter.println("<identifier> " + firstIdentifier + " </identifier>");
+
+        processExpectedSymbol('{');
+        compileClassVarDec();
+        compileSubroutine();
+        processExpectedSymbol('}');
+
+        printWriter.println("</class>");
+        printWriter.close();
     }
 
     public void compileClassVarDec() {
-        jackTokenizer.advance();
+        tokenizer.advance();
 
-        try {
-            while (jackTokenizer.keyWord() == TokenKeyword.STATIC
-                    || jackTokenizer.keyWord() == TokenKeyword.FIELD) {
-                fileWriter.write("<classVarDec>\n");
-                // field or static
-                fileWriter.write("<keyword> " + jackTokenizer.keyWord().lowercase + " </keyword>\n");
-
-                jackTokenizer.advance();
-                // variable type (class identifier or primitive keyword)
-                if (jackTokenizer.tokenType() == TokenType.IDENTIFIER) {
-                    fileWriter.write("<identifier> " + jackTokenizer.identifier() + " </identifier>\n");
-                } else {
-                    fileWriter.write("<keyword> " + jackTokenizer.keyWord().lowercase + " </keyword>\n");
-                }
-
-                jackTokenizer.advance();
-                // variable name(s)
-                fileWriter.write("<identifier> " + jackTokenizer.identifier() + " </identifier>\n");
-                jackTokenizer.advance();
-                if (jackTokenizer.symbol() == ',') {
-                    fileWriter.write("<symbol> , </symbol>\n");
-                    jackTokenizer.advance();
-                    fileWriter.write(("<identifier> " + jackTokenizer.identifier() + " </identifier>\n"));
-                    jackTokenizer.advance();
-                }
-
-                // semicolon
-                fileWriter.write("<symbol> ; </symbol>\n");
-                jackTokenizer.advance();
-                fileWriter.write("</classVarDec>\n");
-            }
-
-            // if reach a subroutine, go back in the arraylist to accommodate for advance in the next call
-            if (jackTokenizer.keyWord() == TokenKeyword.FUNCTION
-                    || jackTokenizer.keyWord() == TokenKeyword.METHOD
-                    || jackTokenizer.keyWord() == TokenKeyword.CONSTRUCTOR) {
-                jackTokenizer.decrementTokenIndex();
-            }
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
+        // end of class
+        if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '}') {
+            tokenizer.decrementTokenIndex();
+            return;
         }
+
+        // if subroutine, then exit
+        if (tokenizer.keyWord() == TokenKeyword.FUNCTION
+                || tokenizer.keyWord() == TokenKeyword.METHOD
+                || tokenizer.keyWord() == TokenKeyword.CONSTRUCTOR) {
+            tokenizer.decrementTokenIndex();
+            return;
+        }
+
+        printWriter.println("<classVarDec>");
+        printWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
+        compileType();
+
+        do {
+            // get identifier
+            tokenizer.advance();
+            printWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+            // get next symbol (either ',' or ';')
+            tokenizer.advance();
+            if (tokenizer.symbol() == ',') {
+                printWriter.println("<symbol> , </symbol>");
+            } else {
+                printWriter.println("<symbol> ; </symbol>");
+                break;
+            }
+        } while (true);
+
+        printWriter.println("</classVarDec>");
+
+        compileClassVarDec();
     }
 
     public void compileSubroutine() {
-        boolean hasSubroutines = false;
+        tokenizer.advance();
 
-        jackTokenizer.advance();
-        try {
-            // once reach the end, return  - no more subroutines - base case for the recursive call
-            if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == '}') {
-                return;
-            }
-            // subroutine dec tag
-            if ((bFirstRoutine) && (jackTokenizer.keyWord() == TokenKeyword.FUNCTION
-                    || jackTokenizer.keyWord() == TokenKeyword.METHOD
-                    || jackTokenizer.keyWord() == TokenKeyword.CONSTRUCTOR)) {
-                bFirstRoutine = false;
-                fileWriter.write("<subroutineDec>\n");
-                hasSubroutines = true;
-            }
-            // function ,e
-            if (jackTokenizer.keyWord() == TokenKeyword.FUNCTION
-                    || jackTokenizer.keyWord() == TokenKeyword.METHOD
-                    || jackTokenizer.keyWord() == TokenKeyword.CONSTRUCTOR) {
-                hasSubroutines = true;
-                fileWriter.write("<keyword> " + jackTokenizer.keyWord().lowercase + " </keyword>\n");
-                jackTokenizer.advance();
-            }
-            // if there is an identifier in the subroutine statement position 2 e.g. function Square getX()
-            if (jackTokenizer.tokenType() == TokenType.IDENTIFIER) {
-                fileWriter.write("<identifier> " + jackTokenizer.identifier() + " </identifier>\n");
-                jackTokenizer.advance();
-            }
-            // if keyword instead for subroutine statement position 2 e.g. function int getX()
-            else if (jackTokenizer.tokenType() == TokenType.KEYWORD) {
-                fileWriter.write("<keyword> " + jackTokenizer.keyWord().lowercase + " </keyword>\n");
-                jackTokenizer.advance();
-            }
-
-            // name of the subroutine
-            if (jackTokenizer.tokenType() == TokenType.IDENTIFIER) {
-                fileWriter.write("<identifier> " + jackTokenizer.identifier() + " </identifier>\n");
-                jackTokenizer.advance();
-            }
-
-            // get parameters, or lack there of
-            if (jackTokenizer.symbol() == '(') {
-                fileWriter.write("<symbol> ( </symbol>\n");
-                fileWriter.write("<parameterList>\n");
-
-                compileParameterList();
-                fileWriter.write("</parameterList>\n");
-                fileWriter.write("<symbol> ) </symbol>\n");
-            }
-            jackTokenizer.advance();
-
-            // start subroutine body
-            if (jackTokenizer.symbol() == '{') {
-                fileWriter.write("<subroutineBody>\n");
-                fileWriter.write("<symbol> { </symbol>\n");
-                jackTokenizer.advance();
-            }
-
-            // get all var declarations in the subroutine
-            while (jackTokenizer.tokenType() == TokenType.KEYWORD
-                    && jackTokenizer.keyWord() == TokenKeyword.VAR) {
-                fileWriter.write("<varDec>\n ");
-                jackTokenizer.decrementTokenIndex();
-                compileVarDec();
-                fileWriter.write(" </varDec>\n");
-            }
-            fileWriter.write("<statements>\n");
-            compileStatements();
-            fileWriter.write("</statements>\n");
-            fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-            if (hasSubroutines) {
-                fileWriter.write("</subroutineBody>\n");
-                fileWriter.write("</subroutineDec>\n");
-                bFirstRoutine = true;
-            }
-
-            // recursive call
-            compileSubroutine();
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
+        // end of subroutine
+        if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '}') {
+            tokenizer.decrementTokenIndex();
+            return;
         }
+
+        printWriter.println("<subroutineDec>");
+        printWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
+
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.KEYWORD && tokenizer.keyWord() == TokenKeyword.VOID) {
+            printWriter.println("<keyword> void </keyword>");
+        } else {
+            tokenizer.decrementTokenIndex();
+            compileType();
+        }
+
+        tokenizer.advance();
+        printWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+        // parameterList
+        processExpectedSymbol('(');
+        printWriter.println("<parameterList>");
+        compileParameterList();
+        printWriter.println("</parameterList>");
+        processExpectedSymbol(')');
+
+        // subroutineBody
+        printWriter.println("<subroutineBody>");
+        processExpectedSymbol('{');
+        compileVarDec();
+        printWriter.println("<statements>");
+        compileStatements();
+        printWriter.println("</statements>");
+        processExpectedSymbol('}');
+        printWriter.println("</subroutineBody>");
+
+        printWriter.println("</subroutineDec>");
+        compileSubroutine();
     }
 
     public void compileParameterList() {
-        jackTokenizer.advance();
+        tokenizer.advance();
 
-        try {
-            // until reach the end - )
-            while (!(jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == ')')) {
-                if (jackTokenizer.tokenType() == TokenType.IDENTIFIER) {
-                    fileWriter.write("<identifier> " + jackTokenizer.identifier() + " </identifier>\n");
-                    jackTokenizer.advance();
-                } else if (jackTokenizer.tokenType() == TokenType.KEYWORD) {
-                    fileWriter.write("<keyword> " + jackTokenizer.keyWord().lowercase + " </keyword>\n");
-                    jackTokenizer.advance();
-                }
-                // commas separate the list, if there are multiple
-                else if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == ',') {
-                    fileWriter.write("<symbol> , </symbol>\n");
-                    jackTokenizer.advance();
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
+        if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ')') {
+            tokenizer.decrementTokenIndex();
+            return;
         }
+
+        tokenizer.decrementTokenIndex();
+        do {
+            compileType();
+
+            tokenizer.advance();
+            printWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+            tokenizer.advance();
+            if (tokenizer.symbol() == ',') {
+                printWriter.println("<symbol>,</symbol>");
+            } else {
+                tokenizer.decrementTokenIndex();
+                break;
+            }
+        } while (true);
     }
 
     public void compileVarDec() {
-        jackTokenizer.advance();
-        try {
-            if (jackTokenizer.tokenType() == TokenType.KEYWORD && jackTokenizer.keyWord() == TokenKeyword.VAR) {
-                fileWriter.write("<keyword> var </keyword>\n");
-                jackTokenizer.advance();
-            }
-            // type of var, if identifier, e.g. Square or Array
-            if (jackTokenizer.tokenType() == TokenType.IDENTIFIER) {
-                fileWriter.write("<identifier> " + jackTokenizer.identifier() + " </identifier>\n");
-                jackTokenizer.advance();
-            }
-            // type of var, if keyword, e.g. int or boolean
-            else if (jackTokenizer.tokenType() == TokenType.KEYWORD) {
-                fileWriter.write("<keyword> " + jackTokenizer.keyWord().lowercase + " </keyword>\n");
-                jackTokenizer.advance();
-            }
-            // name of var
-            if (jackTokenizer.tokenType() == TokenType.IDENTIFIER) {
-                fileWriter.write("<identifier> " + jackTokenizer.identifier() + " </identifier>\n");
-                jackTokenizer.advance();
-            }
-            // if there are mutliple in 1 line
-            if ((jackTokenizer.tokenType() == TokenType.SYMBOL) && (jackTokenizer.symbol() == ',')) {
-                fileWriter.write("<symbol> , </symbol>\n");
-                jackTokenizer.advance();
-                fileWriter.write(("<identifier> " + jackTokenizer.identifier() + " </identifier>\n"));
-                jackTokenizer.advance();
-            }
-            // end of var line
-            if ((jackTokenizer.tokenType() == TokenType.SYMBOL) && (jackTokenizer.symbol() == ';')) {
-                fileWriter.write("<symbol> ; </symbol>\n");
-                jackTokenizer.advance();
+        tokenizer.advance();
 
-            }
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
+        if (tokenizer.tokenType() != TokenType.KEYWORD || tokenizer.keyWord() != TokenKeyword.VAR) {
+            tokenizer.decrementTokenIndex();
+            return;
         }
+
+        printWriter.println("<varDec>");
+        printWriter.println("<keyword> var </keyword>");
+        compileType();
+
+        do {
+            tokenizer.advance();
+            printWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+            tokenizer.advance();
+            if (tokenizer.symbol() == ',') {
+                printWriter.println("<symbol> , </symbol>");
+            } else {
+                printWriter.println("<symbol> ; </symbol>");
+                break;
+            }
+        } while (true);
+
+        printWriter.println("</varDec>");
+        compileVarDec();
     }
 
     public void compileStatements() {
-        try {
-            if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == '}') {
-                return;
-            } else if (jackTokenizer.keyWord() == TokenKeyword.DO && (jackTokenizer.tokenType() == TokenType.KEYWORD)) {
-                fileWriter.write("<doStatement>\n ");
-                compileDo();
-                fileWriter.write((" </doStatement>\n"));
+        tokenizer.advance();
 
-            } else if (jackTokenizer.keyWord() == TokenKeyword.LET && (jackTokenizer.tokenType() == TokenType.KEYWORD)) {
-                fileWriter.write("<letStatement>\n ");
-                compileLet();
-                fileWriter.write((" </letStatement>\n"));
-            } else if (jackTokenizer.keyWord() == TokenKeyword.IF && (jackTokenizer.tokenType() == TokenType.KEYWORD)) {
-                fileWriter.write("<ifStatement>\n ");
-                compileIf();
-                fileWriter.write((" </ifStatement>\n"));
-            } else if (jackTokenizer.keyWord() == TokenKeyword.WHILE && (jackTokenizer.tokenType() == TokenType.KEYWORD)) {
-                fileWriter.write("<whileStatement>\n ");
-                compileWhile();
-                fileWriter.write((" </whileStatement>\n"));
-            } else if (jackTokenizer.keyWord() == TokenKeyword.RETURN && (jackTokenizer.tokenType() == TokenType.KEYWORD)) {
-                fileWriter.write("<returnStatement>\n ");
-                compileReturn();
-                fileWriter.write((" </returnStatement>\n"));
-            }
-            jackTokenizer.advance();
-            compileStatements();
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
+        if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '}') {
+            tokenizer.decrementTokenIndex();
+            return;
         }
+
+        if (tokenizer.tokenType() == TokenType.KEYWORD) {
+            switch (tokenizer.keyWord()) {
+                case LET: compileLet();break;
+                case IF: compileIf();break;
+                case WHILE: compileWhile();break;
+                case DO: compileDo();break;
+                case RETURN: compileReturn();break;
+            }
+        }
+
+        compileStatements();
     }
 
     public void compileDo() {
-        try {
-            if (jackTokenizer.keyWord() == TokenKeyword.DO) {
-                fileWriter.write("<keyword> do </keyword>\n");
-            }
-            // function call
-            compileCall();
-            // semi colon
-            jackTokenizer.advance();
-            fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-
-
-        } catch (IOException e) {
-            e.printStackTrace();
-
-        }
-    }
-
-    public void compileCall() {
-        jackTokenizer.advance();
-        try {
-            // first part
-            fileWriter.write("<identifier> " + jackTokenizer.identifier() + " </identifier>\n");
-            jackTokenizer.advance();
-            // if . - then is something like Screen.erase()
-            if ((jackTokenizer.tokenType() == TokenType.SYMBOL) && (jackTokenizer.symbol() == '.')) {
-                fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-                jackTokenizer.advance();
-                fileWriter.write("<identifier> " + jackTokenizer.identifier() + " </identifier>\n");
-                jackTokenizer.advance();
-                fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-                // parameters in the parentheses
-                fileWriter.write("<expressionList>\n");
-                compileExpressionList();
-                fileWriter.write("</expressionList>\n");
-                jackTokenizer.advance();
-                fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-            }
-            // if ( then is something like erase()
-            else if ((jackTokenizer.tokenType() == TokenType.SYMBOL) && (jackTokenizer.symbol() == '(')) {
-                fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-                fileWriter.write("<expressionList>\n");
-                compileExpressionList();
-                fileWriter.write("</expressionList>\n");
-                // parentheses )
-                jackTokenizer.advance();
-                fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-            }
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        printWriter.println("<doStatement>");
+        printWriter.println("<keyword> do </keyword>");
+        compileSubroutineCall();
+        processExpectedSymbol(';');
+        printWriter.println("</doStatement>");
     }
 
     public void compileLet() {
-        try {
-            fileWriter.write("<keyword>" + jackTokenizer.keyWord().lowercase + " </keyword>\n");
-            jackTokenizer.advance();
-            fileWriter.write("<identifier> " + jackTokenizer.identifier() + " </identifier>\n");
-            jackTokenizer.advance();
+        printWriter.println("<letStatement>");
+        printWriter.println("<keyword> let </keyword>");
 
-            if ((jackTokenizer.tokenType() == TokenType.SYMBOL) && (jackTokenizer.symbol() == '[')) {
-                // there is an expression -- because we have x[5] for example
-                fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-                compileExpression();
-                jackTokenizer.advance();
-                if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == ']') {
-                    fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-                }
-                // only advance if there is an expression
-                jackTokenizer.advance();
-            }
+        tokenizer.advance();
+        printWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
 
-            // = sign
-            fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-
+        tokenizer.advance();
+        boolean expExist = false;
+        if (tokenizer.symbol() == '[') {
+            expExist = true;
+            printWriter.println("<symbol> [ </symbol>");
             compileExpression();
-            // semi colon
-            jackTokenizer.advance();
-            fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-            jackTokenizer.decrementTokenIndex();
-            jackTokenizer.advance();
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
+            processExpectedSymbol(']');
         }
+
+        if (expExist) tokenizer.advance();
+
+        printWriter.println("<symbol> = </symbol>");
+        compileExpression();
+        processExpectedSymbol(';');
+
+        printWriter.println("</letStatement>");
     }
 
     public void compileWhile() {
-        try {
-            // while
-            fileWriter.write("<keyword> " + jackTokenizer.keyWord().lowercase + " </keyword>\n");
-            jackTokenizer.advance();
-            // (
-            fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-            // compile inside of () - expression
-            compileExpression();
-            // )
-            jackTokenizer.advance();
-            fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-            jackTokenizer.advance();
-            // {
-            fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-            // inside of while statement
-            fileWriter.write("<statements>\n");
-            compileStatements();
-            fileWriter.write("</statements>\n");
-            // }
-            fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
+        printWriter.println("<whileStatement>");
 
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        printWriter.println("<keyword> while </keyword>");
+        processExpectedSymbol('(');
+        compileExpression();
+        processExpectedSymbol(')');
+
+        processExpectedSymbol('{');
+        printWriter.println("<statements>");
+        compileStatements();
+        printWriter.println("</statements>");
+        processExpectedSymbol('}');
+
+        printWriter.println("</whileStatement>");
     }
 
     public void compileReturn() {
-        try {
-            fileWriter.write("<keyword> return </keyword>\n");
-            jackTokenizer.advance();
-            if (!((jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == ';'))) {
-                jackTokenizer.decrementTokenIndex();
-                compileExpression();
-                jackTokenizer.advance();
-            }
-            if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == ';') {
-                fileWriter.write("<symbol> ; </symbol>\n");
-            }
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
+        printWriter.println("<returnStatement>");
+        printWriter.println("<keyword> return </keyword>");
+
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ';') {
+            printWriter.println("<symbol> ; </symbol>");
+            printWriter.println("</returnStatement>");
+            return;
         }
+
+        tokenizer.decrementTokenIndex();
+        compileExpression();
+        processExpectedSymbol(';');
+        printWriter.println("</returnStatement>");
     }
 
     public void compileIf() {
-        try {
-            fileWriter.write("<keyword> if </keyword>\n");
-            jackTokenizer.advance();
-            fileWriter.write("<symbol> ( </symbol>\n");
-            // expression within if () condition
-            compileExpression();
-            fileWriter.write("<symbol> ) </symbol>\n");
-            jackTokenizer.advance();
-            fileWriter.write("<symbol> { </symbol>\n");
-            jackTokenizer.advance();
-            fileWriter.write("<statements>\n");
-            // compile statements within if clause { }
+        printWriter.println("<ifStatement>");
+        printWriter.println("<keyword> if </keyword>");
+        processExpectedSymbol('(');
+        compileExpression();
+        processExpectedSymbol(')');
+
+        processExpectedSymbol('{');
+        printWriter.println("<statements>");
+        compileStatements();
+        printWriter.println("</statements>");
+        processExpectedSymbol('}');
+
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.KEYWORD && tokenizer.keyWord() == TokenKeyword.ELSE) {
+            printWriter.println("<keyword> else </keyword>");
+            processExpectedSymbol('{');
+            printWriter.println("<statements>");
             compileStatements();
-            fileWriter.write("</statements>\n");
-            fileWriter.write("<symbol> } </symbol>\n");
-            jackTokenizer.advance();
-            // if there is an else clause of the if statement
-            if (jackTokenizer.tokenType() == TokenType.KEYWORD && jackTokenizer.keyWord() == TokenKeyword.ELSE) {
-                fileWriter.write("<keyword> else </keyword>\n");
-                jackTokenizer.advance();
-                fileWriter.write("<symbol> { </symbol>\n");
-                jackTokenizer.advance();
-                fileWriter.write("<statements>\n");
-                // compile statements within else clause
-                compileStatements();
-                fileWriter.write("</statements>\n");
-                fileWriter.write("<symbol> } </symbol>\n");
-            } else {
-                // keep placeholder correct
-                jackTokenizer.decrementTokenIndex();
-            }
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
+            printWriter.println("</statements>");
+            processExpectedSymbol('}');
+        } else {
+            tokenizer.decrementTokenIndex();
         }
+
+        printWriter.println("</ifStatement>");
     }
 
     public void compileExpression() {
-        try {
-            fileWriter.write("<expression>\n");
-            compileTerm();
-            while (true) {
-                jackTokenizer.advance();
-                if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.isOperation()) {
-                    // < > & = have different xml code
-                    if (jackTokenizer.symbol() == '<') {
-                        fileWriter.write("<symbol> &lt; </symbol>\n");
-                    } else if (jackTokenizer.symbol() == '>') {
-                        fileWriter.write("<symbol> &gt; </symbol>\n");
-                    } else if (jackTokenizer.symbol() == '&') {
-                        fileWriter.write("<symbol> &amp; </symbol>\n");
-                    } else {
-                        fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-                    }
-                    compileTerm();
+        printWriter.println("<expression>");
+        compileTerm();
+
+        do {
+            tokenizer.advance();
+            if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.isOperation()) {
+                // < > & = have different xml code
+                if (tokenizer.symbol() == '<') {
+                    printWriter.write("<symbol> &lt; </symbol>\n");
+                } else if (tokenizer.symbol() == '>') {
+                    printWriter.write("<symbol> &gt; </symbol>\n");
+                } else if (tokenizer.symbol() == '&') {
+                    printWriter.write("<symbol> &amp; </symbol>\n");
                 } else {
-                    jackTokenizer.decrementTokenIndex();
-                    break;
+                    printWriter.write("<symbol> " + tokenizer.symbol() + " </symbol>\n");
                 }
+                compileTerm();
+            } else {
+                tokenizer.decrementTokenIndex();
+                break;
             }
-            fileWriter.write("</expression>\n");
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        } while (true);
+
+        printWriter.println("</expression>");
     }
 
     public void compileTerm() {
-        try {
-            fileWriter.write("<term>\n");
-            jackTokenizer.advance();
-            if (jackTokenizer.tokenType() == TokenType.IDENTIFIER) {
-                String prevIdentifier = jackTokenizer.identifier();
-                jackTokenizer.advance();
-                // for [] terms
-                if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == '[') {
-                    fileWriter.write("<identifier> " + prevIdentifier + " </identifier>\n");
-                    fileWriter.write("<symbol> [ </symbol>\n");
-                    compileExpression();
-                    jackTokenizer.advance();
-                    fileWriter.write("<symbol> ] </symbol>\n");
-                }
-                // for ( or . - subroutine calls
-                else if (jackTokenizer.tokenType() == TokenType.SYMBOL && (jackTokenizer.symbol() == '(' || jackTokenizer.symbol() == '.')) {
-                    jackTokenizer.decrementTokenIndex();
-                    jackTokenizer.decrementTokenIndex();
-                    compileCall();
+        printWriter.println("<term>");
 
-                } else {
-                    fileWriter.write("<identifier> " + prevIdentifier + " </identifier>\n");
-                    jackTokenizer.decrementTokenIndex();
-                }
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.IDENTIFIER) {
+            String prevIdentifier = tokenizer.identifier();
+
+            tokenizer.advance();
+            if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '[') {
+                printWriter.println("<identifier> " + prevIdentifier + " </identifier>");
+                printWriter.println("<symbol> [ </symbol>");
+                compileExpression();
+                processExpectedSymbol(']');
+            } else if (tokenizer.tokenType() == TokenType.SYMBOL && (tokenizer.symbol() == '(' || tokenizer.symbol() == '.')) {
+                tokenizer.decrementTokenIndex();
+                tokenizer.decrementTokenIndex();
+                compileSubroutineCall();
             } else {
-                // integer
-                if (jackTokenizer.tokenType() == TokenType.INT_CONST) {
-                    fileWriter.write("<integerConstant> " + jackTokenizer.intVal() + " </integerConstant>\n");
-
-                }
-                // strings
-                else if (jackTokenizer.tokenType() == TokenType.STRING_CONST) {
-                    fileWriter.write("<stringConstant> " + jackTokenizer.stringVal() + " </stringConstant>\n");
-                }
-                // this true null or false
-                else if (jackTokenizer.tokenType() == TokenType.KEYWORD
-                        && (jackTokenizer.keyWord() == TokenKeyword.THIS || jackTokenizer.keyWord() == TokenKeyword.NULL
-                        || jackTokenizer.keyWord() == TokenKeyword.FALSE
-                        || jackTokenizer.keyWord() == TokenKeyword.TRUE)) {
-                    fileWriter.write("<keyword> " + jackTokenizer.keyWord().lowercase + " </keyword>\n");
-                }
-                // parenthetical separation
-                else if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == '(') {
-                    fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-                    compileExpression();
-                    jackTokenizer.advance();
-                    fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-                }
-                // unary operators
-                else if (jackTokenizer.tokenType() == TokenType.SYMBOL && (jackTokenizer.symbol() == '-' || jackTokenizer.symbol() == '~')) {
-                    fileWriter.write("<symbol> " + jackTokenizer.symbol() + " </symbol>\n");
-                    // recursive call
-                    compileTerm();
-                }
+                printWriter.println("<identifier> " + prevIdentifier + " </identifier>");
+                tokenizer.decrementTokenIndex();
             }
-            fileWriter.write("</term>\n");
+        } else {
+            if (tokenizer.tokenType() == TokenType.INT_CONST) {
+                printWriter.println("<integerConstant> " + tokenizer.intVal() + " </integerConstant>");
 
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
+            } else if (tokenizer.tokenType() == TokenType.STRING_CONST) {
+                printWriter.println("<stringConstant> " + tokenizer.stringVal() + " </stringConstant>");
+            } else if (tokenizer.tokenType() == TokenType.KEYWORD
+                    && (tokenizer.keyWord() == TokenKeyword.THIS
+                    || tokenizer.keyWord() == TokenKeyword.NULL
+                    || tokenizer.keyWord() == TokenKeyword.FALSE
+                    || tokenizer.keyWord() == TokenKeyword.TRUE)) {
+                printWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
+            } else if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '(') {
+                printWriter.println("<symbol> ( </symbol>");
+                compileExpression();
+                processExpectedSymbol(')');
+            } else if (tokenizer.tokenType() == TokenType.SYMBOL && (tokenizer.symbol() == '-' || tokenizer.symbol() == '~')) {
+                printWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
+                compileTerm();
+            }
         }
+
+        printWriter.println("</term>");
     }
 
     public void compileExpressionList() {
-        jackTokenizer.advance();
-        // end of list
-        if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == ')') {
-            jackTokenizer.decrementTokenIndex();
+        tokenizer.advance();
+
+        if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ')') {
+            tokenizer.decrementTokenIndex();
         } else {
-            jackTokenizer.decrementTokenIndex();
+            tokenizer.decrementTokenIndex();
             compileExpression();
-        }
-        while (true) {
-            jackTokenizer.advance();
-            if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == ',') {
-                try {
-                    fileWriter.write("<symbol> , </symbol>\n");
-                } catch (IOException e) {
-                    e.printStackTrace(System.out);
+
+            do {
+                tokenizer.advance();
+                if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == ',') {
+                    printWriter.println("<symbol> , </symbol>");
+                    compileExpression();
+                } else {
+                    tokenizer.decrementTokenIndex();
+                    break;
                 }
-                compileExpression();
-            } else {
-                jackTokenizer.decrementTokenIndex();
-                break;
-            }
+            } while (true);
+        }
+    }
+
+    public void compileType() {
+        tokenizer.advance();
+
+        boolean isValidType = false;
+
+        if (tokenizer.tokenType() == TokenType.KEYWORD
+                && (tokenizer.keyWord() == TokenKeyword.INT
+                || tokenizer.keyWord() == TokenKeyword.CHAR
+                || tokenizer.keyWord() == TokenKeyword.BOOLEAN)) {
+            printWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
+            isValidType = true;
+        }
+
+        if (tokenizer.tokenType() == TokenType.IDENTIFIER) {
+            printWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+            isValidType = true;
+        }
+
+        if (!isValidType) throw new Error("Invalid type used" + tokenizer.getCurrentToken());
+    }
+
+    public void compileSubroutineCall() {
+        tokenizer.advance();
+
+        printWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '(') {
+            printWriter.println("<symbol> ( </symbol>");
+            printWriter.println("<expressionList>");
+            compileExpressionList();
+            printWriter.println("</expressionList>");
+            processExpectedSymbol(')');
+        } else if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '.') {
+            printWriter.println("<symbol> . </symbol>");
+
+            tokenizer.advance();
+            printWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+            processExpectedSymbol('(');
+            printWriter.println("<expressionList>");
+            compileExpressionList();
+            printWriter.println("</expressionList>");
+            processExpectedSymbol(')');
+        }
+    }
+
+    public void processExpectedSymbol(char symbol) {
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == symbol) {
+            printWriter.println("<symbol> " + symbol + " </symbol>");
+        } else {
+            throw new Error("Could not find expected symbol: " + symbol);
         }
     }
 }

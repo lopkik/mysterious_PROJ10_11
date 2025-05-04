@@ -19,14 +19,14 @@
 <subroutineBody>
 <symbol> { </symbol>
 <varDec>
- <keyword> var </keyword>
+<keyword> var </keyword>
 <identifier> SquareGame </identifier>
 <identifier> game </identifier>
 <symbol> ; </symbol>
- </varDec>
+</varDec>
 <statements>
 <letStatement>
- <keyword>let </keyword>
+<keyword> let </keyword>
 <identifier> game </identifier>
 <symbol> = </symbol>
 <expression>
@@ -41,9 +41,9 @@
 </term>
 </expression>
 <symbol> ; </symbol>
- </letStatement>
+</letStatement>
 <doStatement>
- <keyword> do </keyword>
+<keyword> do </keyword>
 <identifier> game </identifier>
 <symbol> . </symbol>
 <identifier> run </identifier>
@@ -52,9 +52,9 @@
 </expressionList>
 <symbol> ) </symbol>
 <symbol> ; </symbol>
- </doStatement>
+</doStatement>
 <doStatement>
- <keyword> do </keyword>
+<keyword> do </keyword>
 <identifier> game </identifier>
 <symbol> . </symbol>
 <identifier> dispose </identifier>
@@ -63,11 +63,11 @@
 </expressionList>
 <symbol> ) </symbol>
 <symbol> ; </symbol>
- </doStatement>
+</doStatement>
 <returnStatement>
- <keyword> return </keyword>
+<keyword> return </keyword>
 <symbol> ; </symbol>
- </returnStatement>
+</returnStatement>
 </statements>
 <symbol> } </symbol>
 </subroutineBody>
@@ -83,28 +83,28 @@
 <subroutineBody>
 <symbol> { </symbol>
 <varDec>
- <keyword> var </keyword>
+<keyword> var </keyword>
 <keyword> int </keyword>
 <identifier> i </identifier>
 <symbol> , </symbol>
 <identifier> j </identifier>
 <symbol> ; </symbol>
- </varDec>
+</varDec>
 <varDec>
- <keyword> var </keyword>
+<keyword> var </keyword>
 <identifier> String </identifier>
 <identifier> s </identifier>
 <symbol> ; </symbol>
- </varDec>
+</varDec>
 <varDec>
- <keyword> var </keyword>
+<keyword> var </keyword>
 <identifier> Array </identifier>
 <identifier> a </identifier>
 <symbol> ; </symbol>
- </varDec>
+</varDec>
 <statements>
 <ifStatement>
- <keyword> if </keyword>
+<keyword> if </keyword>
 <symbol> ( </symbol>
 <expression>
 <term>
@@ -115,7 +115,7 @@
 <symbol> { </symbol>
 <statements>
 <letStatement>
- <keyword>let </keyword>
+<keyword> let </keyword>
 <identifier> s </identifier>
 <symbol> = </symbol>
 <expression>
@@ -124,9 +124,9 @@
 </term>
 </expression>
 <symbol> ; </symbol>
- </letStatement>
+</letStatement>
 <letStatement>
- <keyword>let </keyword>
+<keyword> let </keyword>
 <identifier> s </identifier>
 <symbol> = </symbol>
 <expression>
@@ -135,9 +135,9 @@
 </term>
 </expression>
 <symbol> ; </symbol>
- </letStatement>
+</letStatement>
 <letStatement>
- <keyword>let </keyword>
+<keyword> let </keyword>
 <identifier> a </identifier>
 <symbol> [ </symbol>
 <expression>
@@ -160,14 +160,14 @@
 </term>
 </expression>
 <symbol> ; </symbol>
- </letStatement>
+</letStatement>
 </statements>
 <symbol> } </symbol>
 <keyword> else </keyword>
 <symbol> { </symbol>
 <statements>
 <letStatement>
- <keyword>let </keyword>
+<keyword> let </keyword>
 <identifier> i </identifier>
 <symbol> = </symbol>
 <expression>
@@ -189,9 +189,9 @@
 </term>
 </expression>
 <symbol> ; </symbol>
- </letStatement>
+</letStatement>
 <letStatement>
- <keyword>let </keyword>
+<keyword> let </keyword>
 <identifier> j </identifier>
 <symbol> = </symbol>
 <expression>
@@ -213,9 +213,9 @@
 </term>
 </expression>
 <symbol> ; </symbol>
- </letStatement>
+</letStatement>
 <letStatement>
- <keyword>let </keyword>
+<keyword> let </keyword>
 <identifier> i </identifier>
 <symbol> = </symbol>
 <expression>
@@ -228,14 +228,14 @@
 </term>
 </expression>
 <symbol> ; </symbol>
- </letStatement>
+</letStatement>
 </statements>
 <symbol> } </symbol>
- </ifStatement>
+</ifStatement>
 <returnStatement>
- <keyword> return </keyword>
+<keyword> return </keyword>
 <symbol> ; </symbol>
- </returnStatement>
+</returnStatement>
 </statements>
 <symbol> } </symbol>
 </subroutineBody>

@@ -19,14 +19,14 @@
 <subroutineBody>
 <symbol> { </symbol>
 <varDec>
- <keyword> var </keyword>
+<keyword> var </keyword>
 <identifier> SquareGame </identifier>
 <identifier> game </identifier>
 <symbol> ; </symbol>
- </varDec>
+</varDec>
 <statements>
 <letStatement>
- <keyword>let </keyword>
+<keyword> let </keyword>
 <identifier> game </identifier>
 <symbol> = </symbol>
 <expression>
@@ -35,9 +35,9 @@
 </term>
 </expression>
 <symbol> ; </symbol>
- </letStatement>
+</letStatement>
 <doStatement>
- <keyword> do </keyword>
+<keyword> do </keyword>
 <identifier> game </identifier>
 <symbol> . </symbol>
 <identifier> run </identifier>
@@ -46,9 +46,9 @@
 </expressionList>
 <symbol> ) </symbol>
 <symbol> ; </symbol>
- </doStatement>
+</doStatement>
 <doStatement>
- <keyword> do </keyword>
+<keyword> do </keyword>
 <identifier> game </identifier>
 <symbol> . </symbol>
 <identifier> dispose </identifier>
@@ -57,11 +57,11 @@
 </expressionList>
 <symbol> ) </symbol>
 <symbol> ; </symbol>
- </doStatement>
+</doStatement>
 <returnStatement>
- <keyword> return </keyword>
+<keyword> return </keyword>
 <symbol> ; </symbol>
- </returnStatement>
+</returnStatement>
 </statements>
 <symbol> } </symbol>
 </subroutineBody>
@@ -77,14 +77,14 @@
 <subroutineBody>
 <symbol> { </symbol>
 <varDec>
- <keyword> var </keyword>
+<keyword> var </keyword>
 <keyword> boolean </keyword>
 <identifier> b </identifier>
 <symbol> ; </symbol>
- </varDec>
+</varDec>
 <statements>
 <ifStatement>
- <keyword> if </keyword>
+<keyword> if </keyword>
 <symbol> ( </symbol>
 <expression>
 <term>
@@ -101,11 +101,11 @@
 <statements>
 </statements>
 <symbol> } </symbol>
- </ifStatement>
+</ifStatement>
 <returnStatement>
- <keyword> return </keyword>
+<keyword> return </keyword>
 <symbol> ; </symbol>
- </returnStatement>
+</returnStatement>
 </statements>
 <symbol> } </symbol>
 </subroutineBody>

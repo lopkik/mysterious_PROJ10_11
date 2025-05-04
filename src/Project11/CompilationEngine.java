@@ -232,10 +232,14 @@ public class CompilationEngine {
         jackTokenizer.advance();
         // if . - then is something like Screen.erase()
         if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == '.') {
+            System.out.println("compileCall for ");
+            System.out.println(firstIdentifier);
             jackTokenizer.advance();
             String secondIdentifier = jackTokenizer.identifier();
+            System.out.println(secondIdentifier);
             String callName;
             String strType = symboltable.typeOf(firstIdentifier);
+            System.out.println(strType.isEmpty());
             if (strType.isEmpty()) {
                 callName = firstIdentifier + "." + secondIdentifier;
             } else {
@@ -246,6 +250,7 @@ public class CompilationEngine {
 
             // parameters in the parentheses
             nArguments += compileExpressionList();
+            System.out.println(nArguments);
             jackTokenizer.decrementTokenIndex();
             jackTokenizer.advance();
             vmWriter.writeCall(callName, nArguments);
@@ -255,12 +260,10 @@ public class CompilationEngine {
         else if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == '(') {
             vmWriter.writePush(Segment.POINTER, 0);
 
-            nArguments = compileExpressionList() + 1;
+//            nArguments = compileExpressionList() + 1;
             // parentheses )
             jackTokenizer.advance();
             vmWriter.writeCall(strClassName + "." + firstIdentifier, nArguments);
-
-
         }
     }
 
@@ -268,12 +271,13 @@ public class CompilationEngine {
         jackTokenizer.advance();
         String strVariableName = jackTokenizer.identifier();
         jackTokenizer.advance();
-        boolean bArray = false;
+        boolean isArray = false;
+        System.out.println("CompileLet: ");
         if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == '[') {
             // there is an expression (array) -- because we have x[5] for example
-            bArray = true;
-            compileExpression();
+            isArray = true;
             vmWriter.writePush(symboltable.kindOf(strVariableName), symboltable.indexOf(strVariableName));
+            compileExpression();
             jackTokenizer.advance();
             // add array start to number in array
             vmWriter.writeArithmetic(Command.ADD);
@@ -286,7 +290,7 @@ public class CompilationEngine {
         compileExpression();
         // semi colon
         jackTokenizer.advance();
-        if (bArray) {
+        if (isArray) {
             // pop into temp value and into pointer to hold for that
             vmWriter.writePop(Segment.TEMP, 0);
             vmWriter.writePop(Segment.POINTER, 1);
@@ -369,6 +373,7 @@ public class CompilationEngine {
     }
 
     public void compileExpression() {
+        System.out.println("CompileExpression");
         compileTerm();
         while (true) {
             jackTokenizer.advance();
@@ -412,6 +417,8 @@ public class CompilationEngine {
 
     public void compileTerm() {
         jackTokenizer.advance();
+        System.out.print("CompileTerm: ");
+        System.out.println(jackTokenizer.identifier());
         if (jackTokenizer.tokenType() == TokenType.IDENTIFIER) {
             String prevIdentifier = jackTokenizer.identifier();
             jackTokenizer.advance();
@@ -493,9 +500,11 @@ public class CompilationEngine {
     public int compileExpressionList() {
         int nArguments = 0;
         jackTokenizer.advance();
-        // end of list
+        jackTokenizer.advance();
+
         if (jackTokenizer.tokenType() == TokenType.SYMBOL && jackTokenizer.symbol() == ')') {
             jackTokenizer.decrementTokenIndex();
+            return nArguments;
         } else {
             nArguments = 1;
             jackTokenizer.decrementTokenIndex();
