@@ -51,7 +51,7 @@ public class CompilationEngine {
     public void compileClassVarDec() {
         tokenizer.advance();
 
-        // end of class
+        // empty class
         if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '}') {
             tokenizer.decrementTokenIndex();
             return;
@@ -70,7 +70,6 @@ public class CompilationEngine {
         compileType();
 
         do {
-            // get identifier
             tokenizer.advance();
             printWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
 
@@ -310,7 +309,6 @@ public class CompilationEngine {
         do {
             tokenizer.advance();
             if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.isOperation()) {
-                // < > & = have different xml code
                 if (tokenizer.symbol() == '<') {
                     printWriter.write("<symbol> &lt; </symbol>\n");
                 } else if (tokenizer.symbol() == '>') {

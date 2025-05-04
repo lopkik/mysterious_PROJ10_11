@@ -7,7 +7,6 @@ public class CompilationEngine {
     private final SymbolTable symboltable;
     private final VMWriter vmWriter;
     private String currClass = "";
-    private String currSubroutine = "";
 
     private int labelIndex;
     
@@ -93,17 +92,9 @@ public class CompilationEngine {
             symboltable.define("this", currClass, IdentifierKind.ARG);
         }
 
-        tokenizer.advance();
-        String type = "";
-        if (tokenizer.tokenType() == TokenType.KEYWORD && tokenizer.keyWord() == TokenKeyword.VOID) {
-            type = "void";
-        } else  {
-            tokenizer.decrementTokenIndex();
-            type = compileType();
-        }
-
-        tokenizer.advance();
-        currSubroutine = tokenizer.identifier();
+        tokenizer.advance(); // current token is return type
+        tokenizer.advance(); // current token is subroutine identifier
+        String currSubroutine = tokenizer.identifier();
 
         processExpectedSymbol('(');
         compileParameterList();
@@ -245,7 +236,6 @@ public class CompilationEngine {
             compileExpression();
             processExpectedSymbol(']');
             vmWriter.writeArithmetic(Command.ADD);
-//            tokenizer.advance();
         }
 
         if (isExpression) tokenizer.advance();
@@ -383,9 +373,7 @@ public class CompilationEngine {
         if (tokenizer.tokenType() == TokenType.IDENTIFIER) {
             String prevIdentifier = tokenizer.identifier();
             tokenizer.advance();
-            // for [] terms
             if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '[') {
-                // push the array start
                 vmWriter.writePush(symboltable.kindOf(prevIdentifier), symboltable.indexOf(prevIdentifier));
                 compileExpression();
                 processExpectedSymbol(']');
@@ -418,26 +406,19 @@ public class CompilationEngine {
                 }
             } else if (tokenizer.tokenType() == TokenType.KEYWORD && tokenizer.keyWord() == TokenKeyword.THIS) {
                 vmWriter.writePush(Segment.POINTER, 0);
-            }
-            // false and null - 0
-            else if (tokenizer.tokenType() == TokenType.KEYWORD && (tokenizer.keyWord() == TokenKeyword.NULL || tokenizer.keyWord() == TokenKeyword.FALSE)) {
+            } else if (tokenizer.tokenType() == TokenType.KEYWORD && (tokenizer.keyWord() == TokenKeyword.NULL || tokenizer.keyWord() == TokenKeyword.FALSE)) {
                 vmWriter.writePush(Segment.CONST, 0);
-            }
-            // true - not 0
-            else if (tokenizer.tokenType() == TokenType.KEYWORD && tokenizer.keyWord() == TokenKeyword.TRUE) {
+            } else if (tokenizer.tokenType() == TokenType.KEYWORD && tokenizer.keyWord() == TokenKeyword.TRUE) {
                 vmWriter.writePush(Segment.CONST, 0);
                 vmWriter.writeArithmetic(Command.NOT);
-            }
-            // parenthetical separation
-            else if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '(') {
+            } else if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '(') {
                 compileExpression();
                 processExpectedSymbol(')');
-            }
-            // unary operators
-            else if (tokenizer.tokenType() == TokenType.SYMBOL && (tokenizer.symbol() == '-' || tokenizer.symbol() == '~')) {
+            } else if (tokenizer.tokenType() == TokenType.SYMBOL && (tokenizer.symbol() == '-' || tokenizer.symbol() == '~')) {
                 char symbol = tokenizer.symbol();
-                // recursive call
+
                 compileTerm();
+
                 if (symbol == '-') {
                     vmWriter.writeArithmetic(Command.NEG);
                 } else if (symbol == '~') {
