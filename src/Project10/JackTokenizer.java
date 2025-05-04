@@ -9,13 +9,11 @@ import java.util.regex.Pattern;
 
 public class JackTokenizer {
     private static final ArrayList<String> keywords;
-    private static final String symbols;
     private static final String operations;
     private final ArrayList<String> parsedTokens;
     private String currentToken;
     private int currentTokenIndex;
 
-    private static Pattern tokenPatterns;
     private static String keyWordRegex;
     private static String symbolRegex;
     private static String intRegex;
@@ -46,7 +44,6 @@ public class JackTokenizer {
         keywords.add("return");
         keywords.add("let");
         operations = "+-*/&|<>=";
-        symbols = "{}()[].,;+-*/&|<>=-~";
     }
 
     public JackTokenizer(File inFile) {
@@ -80,54 +77,12 @@ public class JackTokenizer {
         intRegex = "[0-9]+";
         strRegex = "\"[^\"\n]*\"";
         idRegex = "[\\w_]+";
-        tokenPatterns = Pattern.compile(keyWordRegex + symbolRegex + "|" + intRegex + "|" + strRegex + "|" + idRegex);
+        Pattern tokenPatterns = Pattern.compile(keyWordRegex + symbolRegex + "|" + intRegex + "|" + strRegex + "|" + idRegex);
 
         Matcher m = tokenPatterns.matcher(sanitizedJackCode);
         while (m.find()) {
             parsedTokens.add(m.group());
         }
-//        while (!sanitizedJackCode.isEmpty()) {
-//            while (sanitizedJackCode.charAt(0) == ' ') {
-//                sanitizedJackCode = sanitizedJackCode.substring(1);
-//            }
-//
-//            for (String keyword : keywords) {
-//                if (sanitizedJackCode.startsWith(keyword)) {
-//                    parsedTokens.add(keyword);
-//                    sanitizedJackCode = sanitizedJackCode.substring(keyword.length());
-//                }
-//            }
-//
-//            if (symbols.contains(sanitizedJackCode.substring(0,1))) {
-//                parsedTokens.add(sanitizedJackCode.substring(0,1));
-//                sanitizedJackCode = sanitizedJackCode.substring(1);
-//            } else if (Character.isDigit(sanitizedJackCode.charAt(0))) {
-//                String integerString = "";
-//                while (Character.isDigit(sanitizedJackCode.charAt(0))) {
-//                    integerString = integerString.concat(sanitizedJackCode.substring(0,1));
-//                    sanitizedJackCode = sanitizedJackCode.substring(1);
-//                }
-//                parsedTokens.add(integerString);
-//            } else if (sanitizedJackCode.charAt(0) == '"') {
-//                String stringString = "\"";
-//                sanitizedJackCode = sanitizedJackCode.substring(1);
-//                while (sanitizedJackCode.charAt(0) != '"') {
-//                    stringString = stringString.concat(sanitizedJackCode.substring(0,1));
-//                    sanitizedJackCode = sanitizedJackCode.substring(1);
-//                }
-//                stringString = stringString.concat("\"");
-//                parsedTokens.add(stringString);
-//                sanitizedJackCode = sanitizedJackCode.substring(1);
-//            } else if (Character.isLetter(sanitizedJackCode.charAt(0)) || sanitizedJackCode.charAt(0) == '_') {
-//                String identifier = sanitizedJackCode.substring(0,1);
-//                sanitizedJackCode = sanitizedJackCode.substring(1);
-//                while (Character.isLetter(sanitizedJackCode.charAt(0)) || sanitizedJackCode.charAt(0) == '_') {
-//                    identifier = identifier.concat(sanitizedJackCode.substring(0,1));
-//                    sanitizedJackCode = sanitizedJackCode.substring(1);
-//                }
-//                parsedTokens.add(identifier);
-//            }
-//        }
     }
 
     public boolean hasMoreTokens() {

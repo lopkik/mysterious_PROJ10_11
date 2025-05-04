@@ -27,7 +27,7 @@ public class JackCompiler {
             String fileOutName = originalFileName.substring(0, originalFileName.length() - 5) + ".vm";
             File fileOut = new File(fileOutName);
 
-            System.out.print("Writing to ");
+            System.out.print("\nWriting to ");
             System.out.println(fileOutName);
             CompilationEngine compilationEngine = new CompilationEngine(file, fileOut);
             compilationEngine.compileClass();

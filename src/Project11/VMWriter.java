@@ -1,26 +1,22 @@
 package Project11;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 public class VMWriter {
-    private FileWriter fileWriter;
+    private PrintWriter printWriter;
 
     public VMWriter (File outFile) {
         try {
-            fileWriter = new FileWriter(outFile);
+            printWriter = new PrintWriter(outFile);
         } catch (IOException e) {
             e.printStackTrace(System.out);
         }
     }
 
     public void writePush(Segment segment, int index) {
-        try {
-            fileWriter.write("push " + segment.label + " " + index + "\n");
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        printWriter.println("push " + segment.label + " " + index);
     }
 
     public void writePush(IdentifierKind kind, int index) {
@@ -31,22 +27,16 @@ public class VMWriter {
             segment = Segment.THIS;
         } else if (kind == IdentifierKind.ARG) {
             segment = Segment.ARG;
+        } else if (kind == IdentifierKind.STATIC) {
+            segment = Segment.STATIC;
         }
 
-        try {
-            assert segment != null;
-            fileWriter.write("push " + segment.label + " " + index + "\n");
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        assert segment != null;
+        printWriter.println("push " + segment.label + " " + index );
     }
 
     public void writePop(Segment segment, int index) {
-        try {
-            fileWriter.write("pop " + segment.label + " " + index + "\n");
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        printWriter.println("pop " + segment.label + " " + index);
     }
 
     public void writePop(IdentifierKind kind, int index) {
@@ -57,77 +47,43 @@ public class VMWriter {
             segment = Segment.THIS;
         } else if (kind == IdentifierKind.ARG) {
             segment = Segment.ARG;
+        } else if (kind == IdentifierKind.STATIC) {
+            segment = Segment.STATIC;
         }
 
-        try {
-            assert segment != null;
-            fileWriter.write("pop " + segment.label + " " + index + "\n");
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        assert segment != null;
+        printWriter.println("pop " + segment.label + " " + index);
     }
 
     public void writeArithmetic(Command command) {
-        try {
-            fileWriter.write(command.label + "\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        printWriter.println(command.label);
     }
 
     public void writeLabel(String label) {
-        try {
-            fileWriter.write("label " + label + "\n");
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        printWriter.println("label " + label);
     }
 
     public void writeGoto(String label) {
-        try {
-            fileWriter.write("goto " + label + "\n");
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        printWriter.println("goto " + label);
     }
 
     public void writeIf(String label) {
-        try {
-            fileWriter.write("if-goto " + label + "\n");
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        printWriter.println("if-goto " + label);
     }
 
     public void writeCall(String name, int nArgs) {
-        try {
-            fileWriter.write("call " + name + " " + nArgs + "\n");
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        printWriter.println("call " + name + " " + nArgs);
     }
 
     public void writeFunction(String name, int nLocals) {
-        try {
-            fileWriter.write("function " + name + " " + nLocals + "\n");
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        printWriter.println("function " + name + " " + nLocals);
     }
 
     public void writeReturn() {
-        try {
-            fileWriter.write("return\n");
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        printWriter.println("return");
     }
 
     public void close() {
-        try {
-            fileWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace(System.out);
-        }
+        printWriter.close();
     }
 }

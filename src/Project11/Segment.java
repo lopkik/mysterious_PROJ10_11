@@ -12,7 +12,7 @@ public enum Segment {
 
     public final String label;
 
-    private Segment(String label) {
+    Segment(String label) {
         this.label = label;
     }
 }

@@ -13,7 +13,7 @@ public enum Command {
 
     public final String label;
 
-    private Command(String label) {
+    Command(String label) {
         this.label = label;
     }
 }
